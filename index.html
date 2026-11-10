@@ -3,7 +3,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>마법학교 탈출 2</title>
 <style>
 *{box-sizing:border-box}
@@ -15,9 +15,10 @@ canvas{display:block;width:100vw;height:100vh;touch-action:none}
 #dialog p{line-height:1.8;white-space:pre-line}
 button{border:2px solid #e6c98a;background:#3a2a4e;color:white;border-radius:2px;padding:11px 16px;margin:5px;font-size:15px;cursor:pointer}
 #toast{position:fixed;top:18%;left:50%;transform:translateX(-50%);background:#181222f2;border:2px solid #d7b56a;border-radius:2px;padding:10px 16px;display:none}
-#joy{display:none;position:fixed;left:18px;bottom:18px;width:128px;height:128px;border-radius:50%;border:2px solid #ddd8;background:#ffffff20;touch-action:none;z-index:12}
+#joy{display:none;position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));width:128px;height:128px;border-radius:50%;border:2px solid #ddd8;background:#ffffff20;touch-action:none;z-index:12}
 #nub{position:absolute;left:42px;top:42px;width:42px;height:42px;border-radius:50%;background:#c9a7eaaa}
-#act{display:none;position:fixed;right:18px;bottom:28px;min-width:92px;min-height:68px;font-size:18px;z-index:12}
+#act{display:none;position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));min-width:92px;min-height:68px;font-size:18px;z-index:12}
+#wideMenu,#wideTurn{display:none}
 #hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:12px;color:#e8dcf3}
 #gear{position:fixed;top:12px;right:12px;z-index:16;padding:8px 12px}
 #panel{display:none;position:fixed;top:54px;right:12px;z-index:24;width:min(86vw,280px);background:#181222f8;border:2px solid #d7b56a;padding:14px;box-shadow:0 12px 40px #000a}
@@ -27,7 +28,8 @@ button{border:2px solid #e6c98a;background:#3a2a4e;color:white;border-radius:2px
 #menu h1{margin:0 0 8px;color:#f3d7a2;font-size:clamp(28px,5vw,46px)}
 #menu p{color:#d9cbe6;margin:0 0 18px}
 #menu button{min-width:180px;min-height:52px;font-size:20px}
-#turn{display:none;position:fixed;inset:0;z-index:80;background:#110e1b;align-items:center;justify-content:center;text-align:center;padding:28px;font-size:24px;line-height:1.6}
+#turn{display:none;position:fixed;inset:0;z-index:80;background:#110e1b;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;font-size:24px;line-height:1.6}
+#turn p{margin:0 0 16px}
 @media(pointer:coarse){#joy,#act{display:block}#hint{display:none}}
 @media(pointer:coarse) and (orientation:landscape){
  #hud{left:50%;right:auto;transform:translateX(-50%);top:8px;font-size:16px;max-width:46vw}
@@ -36,7 +38,18 @@ button{border:2px solid #e6c98a;background:#3a2a4e;color:white;border-radius:2px
  #gear{top:8px}
  button,input{font-size:17px}
 }
-@media(pointer:coarse) and (orientation:portrait){#turn{display:flex}}
+html.mobile,html.mobile body{position:fixed;inset:0;width:100%;height:100%;height:100dvh}
+html.mobile canvas{width:100%;height:100%}
+html.mobile #wideMenu,html.mobile #wideTurn{display:inline-block}
+html.mobile #joy,html.mobile #act{display:block}
+html.mobile #hint{display:none}
+body.need-turn #turn{display:flex}
+@media(orientation:landscape) and (max-height:430px){
+ html.mobile #joy{width:104px;height:104px}
+ html.mobile #nub{left:33px;top:33px;width:38px;height:38px}
+ html.mobile #act{min-width:84px;min-height:56px;font-size:16px;padding:8px 12px}
+ html.mobile #hud{top:6px;font-size:14px;padding:6px 10px}
+}
 body.cinematic #hud,body.cinematic #hint,body.cinematic #joy,body.cinematic #act,body.cinematic #gear,body.cinematic #panel{display:none!important}
 body.menu #hud,body.menu #hint,body.menu #joy,body.menu #act,body.menu #gear,body.menu #panel{display:none!important}
 #cinema{display:none;position:fixed;inset:0;z-index:30;background:#120d1e;width:100vw;height:100vh}
@@ -44,12 +57,13 @@ body.menu #hud,body.menu #hint,body.menu #joy,body.menu #act,body.menu #gear,bod
 </style>
 </head>
 <body class="menu">
-<div id="turn">휴대폰을 가로로 돌려 주세요</div>
+<div id="turn"><p id="turnNote">휴대폰을 가로로 돌려 주세요</p><button id="wideTurn" type="button">가로 전체 화면</button></div>
 <div id="menu">
  <h1>마법학교 탈출 2</h1>
  <p>열쇠로 열었던 문 너머의 이야기</p>
  <button id="newGame" type="button">새 게임</button>
  <button id="continueGame" type="button">이어하기</button>
+ <button id="wideMenu" type="button">가로 전체 화면</button>
 </div>
 <canvas id="cinema"></canvas>
 <button id="skipIntro">건너뛰기</button>
@@ -76,11 +90,43 @@ body.menu #hud,body.menu #hint,body.menu #joy,body.menu #act,body.menu #gear,bod
 
 const c=document.getElementById('c'),g=c.getContext('2d'),dlg=document.getElementById('dialog'),title=document.getElementById('title'),message=document.getElementById('message'),buttons=document.getElementById('buttons'),toast=document.getElementById('toast'),status=document.getElementById('status');
 let W,H,DPR;
+const mobile=matchMedia('(pointer: coarse)').matches||(navigator.maxTouchPoints>0&&matchMedia('(hover: none)').matches);
+if(mobile)document.documentElement.classList.add('mobile');
 function resize(){
- W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);
- c.width=W*DPR;c.height=H*DPR;g.setTransform(DPR,0,0,DPR,0,0)
+ const vv=window.visualViewport;
+ W=Math.round(vv?vv.width:innerWidth);H=Math.round(vv?vv.height:innerHeight);DPR=Math.min(devicePixelRatio||1,2);
+ c.width=Math.round(W*DPR);c.height=Math.round(H*DPR);g.setTransform(DPR,0,0,DPR,0,0);
+ const cinema=document.getElementById('cinema');
+ if(cinema&&cinema.style.display==='block'){cinema.width=Math.round(W*DPR);cinema.height=Math.round(H*DPR)}
 }
-onresize=resize;resize();
+function syncTurn(){
+ const portrait=matchMedia('(orientation: portrait)').matches;
+ document.body.classList.toggle('need-turn',mobile&&portrait);
+}
+let lockTried=false;
+async function goLandscape(){
+ const root=document.documentElement;
+ lockTried=true;
+ try{
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+   const req=root.requestFullscreen||root.webkitRequestFullscreen;
+   if(req)await req.call(root)
+  }
+ }catch(e){}
+ try{
+  if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')
+ }catch(e){}
+ resize();syncTurn();
+ const note=document.getElementById('turnNote');
+ if(note&&mobile&&matchMedia('(orientation: portrait)').matches)note.textContent='이 브라우저는 화면을 강제로 돌리지 못합니다. 휴대폰을 가로로 돌려 주세요.';
+}
+function onViewport(){resize();syncTurn()}
+onresize=onViewport;
+if(window.visualViewport)visualViewport.addEventListener('resize',onViewport);
+if(screen.orientation)screen.orientation.addEventListener('change',onViewport);
+document.getElementById('wideMenu').onclick=goLandscape;
+document.getElementById('wideTurn').onclick=goLandscape;
+resize();syncTurn();
 
 const hall=[{x:100,y:400,w:1550,h:320},{x:1330,y:400,w:320,h:900}];
 const doors=[
@@ -964,7 +1010,7 @@ function scareDraw(dt){
 }
 
 function cameraView(){
- return matchMedia('(pointer:coarse)').matches&&innerWidth>innerHeight?1.42:1
+ return matchMedia('(pointer:coarse)').matches&&W>H?1.42:1
 }
 let last=performance.now();
 function loop(now){
